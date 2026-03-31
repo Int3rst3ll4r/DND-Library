@@ -1,0 +1,38 @@
+name: Generate Library JSON
+
+on:
+  push:
+    paths:
+      - 'library/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate JSON
+        run: |
+          echo "[" > library.json
+          first=1
+          for file in library/*.pdf; do
+            name=$(basename "$file")
+            name_no_ext="${name%.pdf}"
+
+            if [ $first -eq 0 ]; then
+              echo "," >> library.json
+            fi
+
+            echo "  {\"name\": \"$name_no_ext\", \"file\": \"$file\"}" >> library.json
+            first=0
+          done
+          echo "]" >> library.json
+
+      - name: Commit JSON
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add library.json
+          git commit -m "Update library.json" || echo "No changes"
+          git push
