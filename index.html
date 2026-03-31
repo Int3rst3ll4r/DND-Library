@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>D&D Library</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
@@ -28,10 +29,13 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, 220px);
+      grid-template-columns: repeat(auto-fit, 220px);
       gap: 25px;
       justify-content: center;
+      align-items: center;
+      margin: 0 auto;
       padding: 20px 40px 40px;
+      max-width: 100%;
     }
 
     .card {
@@ -120,6 +124,33 @@
     @keyframes float {
       from { transform: translateY(100vh); }
       to { transform: translateY(-10vh); }
+    }
+
+    /* Mobile styles */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 32px;
+        margin: 20px 0 10px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+        padding: 20px 20px 40px;
+        gap: 30px;
+      }
+
+      .card {
+        max-width: 280px;
+        margin: 0 auto;
+      }
+
+      .card img {
+        height: 360px;
+      }
+
+      .placeholder {
+        height: 360px;
+      }
     }
   </style>
 </head>
