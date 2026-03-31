@@ -1,72 +1,183 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>PDF Library</title>
+  <title>D&D Library</title>
   <style>
     body {
       font-family: Arial;
-      background: #111;
+      background: #0f0f0f;
       color: white;
+      margin: 0;
       text-align: center;
+    }
+
+    h1 {
+      margin: 20px;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, 200px);
+      grid-template-columns: repeat(auto-fill, 220px);
       gap: 20px;
       justify-content: center;
       padding: 20px;
     }
 
     .card {
-      background: #222;
+      background: #1c1c1c;
       padding: 10px;
-      border-radius: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+      background: #2a2a2a;
     }
 
     canvas {
       width: 100%;
-      border-radius: 5px;
+      border-radius: 6px;
+    }
+
+    .title {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    /* Viewer */
+    #viewer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #viewer canvas {
+      max-width: 90%;
+      margin-top: 10px;
+    }
+
+    #controls {
+      margin: 10px;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin: 5px;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
-  <h1>My PDF Library</h1>
+  <h1>D&D Library</h1>
   <div class="grid" id="grid"></div>
 
+  <!-- Viewer -->
+  <div id="viewer">
+    <div id="controls">
+      <button onclick="prevPage()">⬅ Prev</button>
+      <button onclick="nextPage()">Next ➡</button>
+      <button onclick="closeViewer()">Close ✖</button>
+    </div>
+    <canvas id="viewerCanvas"></canvas>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
   <script>
+    let currentPDF = null;
+    let currentPage = 1;
+
     async function loadLibrary() {
       const res = await fetch("library.json");
       const data = await res.json();
-
       const grid = document.getElementById("grid");
 
-      data.forEach(async (item) => {
-        const card = document.createElement("div");
-        card.className = "card";
+      for (const item of data) {
+        try {
+          // Try loading PDF FIRST
+          const pdf = await pdfjsLib.getDocument(item.file).promise;
+          const page = await pdf.getPage(1);
 
-        const canvas = document.createElement("canvas");
-        const title = document.createElement("p");
-        title.textContent = item.name;
+          // Only create card if success
+          const card = document.createElement("div");
+          card.className = "card";
 
-        card.appendChild(canvas);
-        card.appendChild(title);
-        grid.appendChild(card);
+          const canvas = document.createElement("canvas");
+          const title = document.createElement("div");
 
-        const pdf = await pdfjsLib.getDocument(item.file).promise;
-        const page = await pdf.getPage(1);
+          title.className = "title";
+          title.textContent = item.name;
 
-        const viewport = page.getViewport({ scale: 1 });
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+          card.appendChild(canvas);
+          card.appendChild(title);
+          grid.appendChild(card);
 
-        await page.render({
-          canvasContext: canvas.getContext("2d"),
-          viewport: viewport
-        }).promise;
-      });
+          const viewport = page.getViewport({ scale: 1 });
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          await page.render({
+            canvasContext: canvas.getContext("2d"),
+            viewport: viewport
+          }).promise;
+
+          // Click = open viewer
+          card.onclick = () => openViewer(item.file);
+
+        } catch (err) {
+          console.log("Skipping:", item.name);
+        }
+      }
+    }
+
+    async function openViewer(url) {
+      currentPDF = await pdfjsLib.getDocument(url).promise;
+      currentPage = 1;
+      document.getElementById("viewer").style.display = "flex";
+      renderPage();
+    }
+
+    async function renderPage() {
+      const page = await currentPDF.getPage(currentPage);
+      const canvas = document.getElementById("viewerCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const viewport = page.getViewport({ scale: 1.5 });
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport
+      }).promise;
+    }
+
+    function nextPage() {
+      if (currentPDF && currentPage < currentPDF.numPages) {
+        currentPage++;
+        renderPage();
+      }
+    }
+
+    function prevPage() {
+      if (currentPDF && currentPage > 1) {
+        currentPage--;
+        renderPage();
+      }
+    }
+
+    function closeViewer() {
+      document.getElementById("viewer").style.display = "none";
+      currentPDF = null;
     }
 
     loadLibrary();
