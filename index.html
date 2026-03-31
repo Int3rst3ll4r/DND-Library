@@ -47,7 +47,6 @@
       overflow: hidden;
     }
 
-    /* ✨ Glow border effect */
     .card::before {
       content: "";
       position: absolute;
@@ -108,7 +107,6 @@
       color: #e6d3a3;
     }
 
-    /* ✨ subtle floating particles */
     .sparkle {
       position: fixed;
       width: 3px;
@@ -120,12 +118,8 @@
     }
 
     @keyframes float {
-      from {
-        transform: translateY(100vh);
-      }
-      to {
-        transform: translateY(-10vh);
-      }
+      from { transform: translateY(100vh); }
+      to { transform: translateY(-10vh); }
     }
   </style>
 </head>
@@ -154,6 +148,10 @@
           img.loading = "lazy";
           img.alt = item.name;
 
+          // ✅ Use GitHub relative path
+          // Assuming covers are stored in /covers/ folder
+          img.src = `covers/${item.cover}`;
+
           const placeholder = createPlaceholder(item.name);
           card.appendChild(placeholder);
 
@@ -165,10 +163,7 @@
             placeholder.textContent = "Missing Cover";
           };
 
-          img.src = item.cover;
-
           visual = img;
-
         } else {
           visual = createPlaceholder(item.name);
           card.appendChild(visual);
@@ -194,7 +189,6 @@
       return div;
     }
 
-    // ✨ floating particles (aesthetic only)
     function spawnSparkles() {
       for (let i = 0; i < 20; i++) {
         const s = document.createElement("div");
