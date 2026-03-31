@@ -148,8 +148,7 @@
           img.loading = "lazy";
           img.alt = item.name;
 
-          // ✅ Use GitHub relative path
-          // Assuming covers are stored in /covers/ folder
+          // ✅ Load image from local covers folder
           img.src = `covers/${item.cover}`;
 
           const placeholder = createPlaceholder(item.name);
@@ -176,6 +175,7 @@
         card.appendChild(title);
         grid.appendChild(card);
 
+        // Keep PDF links exactly the same
         card.onclick = () => {
           window.open(item.file, "_blank");
         };
