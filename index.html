@@ -39,14 +39,15 @@
 
     .card img {
       width: 100%;
-      height: 300px;
+      height: 280px;
       object-fit: cover;
       border-radius: 6px;
+      display: block;
     }
 
     .placeholder {
       width: 100%;
-      height: 300px;
+      height: 280px;
       border-radius: 6px;
       background: linear-gradient(135deg, #333, #111);
       display: flex;
@@ -81,26 +82,39 @@
 
         if (item.cover) {
           const img = document.createElement("img");
-          img.src = item.cover;
 
-          // fallback if image fails
-          img.onerror = () => {
-            img.replaceWith(createPlaceholder(item.name));
+          img.loading = "lazy"; // ⚡ only loads when visible
+          img.alt = item.name;
+
+          // show placeholder first
+          const placeholder = createPlaceholder(item.name);
+          card.appendChild(placeholder);
+
+          img.onload = () => {
+            placeholder.replaceWith(img);
           };
 
+          img.onerror = () => {
+            placeholder.textContent = "Image failed";
+          };
+
+          img.src = item.cover;
+
           visual = img;
+
         } else {
           visual = createPlaceholder(item.name);
+          card.appendChild(visual);
         }
 
         const title = document.createElement("div");
         title.className = "title";
         title.textContent = item.name;
 
-        card.appendChild(visual);
         card.appendChild(title);
         grid.appendChild(card);
 
+        // 🚀 instant open (fastest possible)
         card.onclick = () => {
           window.open(item.file, "_blank");
         };
