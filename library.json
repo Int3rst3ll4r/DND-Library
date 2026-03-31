@@ -1,14 +1,17 @@
 [
   {
     "name": "Monsters Of The Multiverse",
-    "file": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/Monsters-Of-The-Multiverse.pdf"
+    "file": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/Monsters-Of-The-Multiverse.pdf",
+    "cover": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/covers/multiverse.jpg"
   },
   {
     "name": "Players Handbook",
-    "file": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/Players-Handbook.pdf"
+    "file": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/Players-Handbook.pdf",
+    "cover": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/covers/phb.jpg"
   },
   {
     "name": "Volos Guide To Monsters",
-    "file": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/Volos-Guide-To-Monsters.pdf"
+    "file": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/Volos-Guide-To-Monsters.pdf",
+    "cover": "https://pub-e2b153fc2d884bd6891e31ecc26fab30.r2.dev/covers/volo.jpg"
   }
 ]
