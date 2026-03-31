@@ -141,31 +141,21 @@
         const card = document.createElement("div");
         card.className = "card";
 
-        let visual;
-
         if (item.cover) {
           const img = document.createElement("img");
           img.loading = "lazy";
           img.alt = item.name;
+          img.src = `covers/${item.cover}`; // Load from local repo
 
-          // ✅ Load image from local covers folder
-          img.src = `covers/${item.cover}`;
-
-          const placeholder = createPlaceholder(item.name);
-          card.appendChild(placeholder);
-
-          img.onload = () => {
-            placeholder.replaceWith(img);
-          };
-
+          // Fallback: show placeholder if image fails
           img.onerror = () => {
-            placeholder.textContent = "Missing Cover";
+            const placeholder = createPlaceholder(item.name);
+            img.replaceWith(placeholder);
           };
 
-          visual = img;
+          card.appendChild(img);
         } else {
-          visual = createPlaceholder(item.name);
-          card.appendChild(visual);
+          card.appendChild(createPlaceholder(item.name));
         }
 
         const title = document.createElement("div");
