@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>D&D Library</title>
+
   <style>
     body {
       font-family: Arial;
@@ -36,42 +37,28 @@
       background: #2a2a2a;
     }
 
-    canvas {
+    .card img {
       width: 100%;
+      height: 300px;
+      object-fit: cover;
       border-radius: 6px;
+    }
+
+    .placeholder {
+      width: 100%;
+      height: 300px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #333, #111);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #aaa;
     }
 
     .title {
       margin-top: 10px;
       font-size: 14px;
-    }
-
-    /* Viewer */
-    #viewer {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: black;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #viewer canvas {
-      max-width: 90%;
-      margin-top: 10px;
-    }
-
-    #controls {
-      margin: 10px;
-    }
-
-    button {
-      padding: 8px 12px;
-      margin: 5px;
-      cursor: pointer;
     }
   </style>
 </head>
@@ -80,150 +67,54 @@
   <h1>D&D Library</h1>
   <div class="grid" id="grid"></div>
 
-  <!-- Viewer -->
-  <div id="viewer">
-    <div id="controls">
-      <button onclick="prevPage()">⬅ Prev</button>
-      <button onclick="nextPage()">Next ➡</button>
-      <button onclick="closeViewer()">Close ✖</button>
-    </div>
-    <canvas id="viewerCanvas"></canvas>
-  </div>
+  <script>
+    async function loadLibrary() {
+      const res = await fetch("library.json");
+      const data = await res.json();
+      const grid = document.getElementById("grid");
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+      data.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "card";
 
-  let currentPDF = null;
-  let currentPage = 1;
+        let visual;
 
-  async function loadLibrary() {
-    const res = await fetch("library.json");
-    const data = await res.json();
-    const grid = document.getElementById("grid");
+        if (item.cover) {
+          const img = document.createElement("img");
+          img.src = item.cover;
 
-    data.forEach(item => {
-      const card = document.createElement("div");
-      card.className = "card";
+          // fallback if image fails
+          img.onerror = () => {
+            img.replaceWith(createPlaceholder(item.name));
+          };
 
-      const canvas = document.createElement("canvas");
-      const title = document.createElement("div");
+          visual = img;
+        } else {
+          visual = createPlaceholder(item.name);
+        }
 
-      title.className = "title";
-      title.textContent = item.name;
+        const title = document.createElement("div");
+        title.className = "title";
+        title.textContent = item.name;
 
-      card.appendChild(canvas);
-      card.appendChild(title);
-      grid.appendChild(card);
+        card.appendChild(visual);
+        card.appendChild(title);
+        grid.appendChild(card);
 
-      card.onclick = () => openViewer(item.file);
-
-      // ⚡ FAST thumbnail (low quality first)
-      renderThumbnail(item.file, canvas);
-    });
-  }
-
-  async function renderThumbnail(url, canvas) {
-    try {
-      const pdf = await pdfjsLib.getDocument({
-        url: url,
-        rangeChunkSize: 65536 // streaming chunks
-      }).promise;
-
-      const page = await pdf.getPage(1);
-
-      // ⚡ super fast preview
-      let viewport = page.getViewport({ scale: 0.3 });
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-
-      await page.render({
-        canvasContext: canvas.getContext("2d"),
-        viewport: viewport
-      }).promise;
-
-      // 🔥 upgrade quality after
-      viewport = page.getViewport({ scale: 0.6 });
-      await page.render({
-        canvasContext: canvas.getContext("2d"),
-        viewport: viewport
-      }).promise;
-
-    } catch (err) {
-      console.log("Thumbnail failed:", err);
-    }
-  }
-
-  async function openViewer(url) {
-    document.getElementById("viewer").style.display = "flex";
-
-    // show loading instantly
-    const canvas = document.getElementById("viewerCanvas");
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = "20px Arial";
-    ctx.fillText("Loading...", 20, 40);
-
-    try {
-      const loadingTask = pdfjsLib.getDocument({
-        url: url,
-        rangeChunkSize: 65536, // ⚡ stream PDF
-        disableAutoFetch: false,
-        disableStream: false
+        card.onclick = () => {
+          window.open(item.file, "_blank");
+        };
       });
-
-      currentPDF = await loadingTask.promise;
-      currentPage = 1;
-
-      renderPage();
-
-    } catch (err) {
-      console.error(err);
     }
-  }
 
-  async function renderPage() {
-    const page = await currentPDF.getPage(currentPage);
-    const canvas = document.getElementById("viewerCanvas");
-    const ctx = canvas.getContext("2d");
-
-    // 📏 FIT TO SCREEN
-    const containerWidth = window.innerWidth * 0.9;
-    const viewport = page.getViewport({ scale: 1 });
-
-    const scale = containerWidth / viewport.width;
-    const scaledViewport = page.getViewport({ scale });
-
-    canvas.height = scaledViewport.height;
-    canvas.width = scaledViewport.width;
-
-    await page.render({
-      canvasContext: ctx,
-      viewport: scaledViewport
-    }).promise;
-  }
-
-  function nextPage() {
-    if (currentPDF && currentPage < currentPDF.numPages) {
-      currentPage++;
-      renderPage();
+    function createPlaceholder(name) {
+      const div = document.createElement("div");
+      div.className = "placeholder";
+      div.textContent = name;
+      return div;
     }
-  }
 
-  function prevPage() {
-    if (currentPDF && currentPage > 1) {
-      currentPage--;
-      renderPage();
-    }
-  }
-
-  function closeViewer() {
-    document.getElementById("viewer").style.display = "none";
-    currentPDF = null;
-  }
-
-  loadLibrary();
-</script>
+    loadLibrary();
+  </script>
 </body>
 </html>
