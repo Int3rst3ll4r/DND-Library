@@ -90,97 +90,123 @@
     <canvas id="viewerCanvas"></canvas>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script>
+  // 🔥 REQUIRED (fixes clicking / rendering issues)
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
 
-  <script>
-    let currentPDF = null;
-    let currentPage = 1;
+  let currentPDF = null;
+  let currentPage = 1;
 
-    async function loadLibrary() {
-      const res = await fetch("library.json");
-      const data = await res.json();
-      const grid = document.getElementById("grid");
+  async function loadLibrary() {
+    const res = await fetch("library.json");
+    const data = await res.json();
+    const grid = document.getElementById("grid");
 
-      for (const item of data) {
-        try {
-          // Try loading PDF FIRST
-          const pdf = await pdfjsLib.getDocument(item.file).promise;
-          const page = await pdf.getPage(1);
+    // ⚡ Create cards instantly (no waiting)
+    data.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "card";
 
-          // Only create card if success
-          const card = document.createElement("div");
-          card.className = "card";
+      const canvas = document.createElement("canvas");
+      const title = document.createElement("div");
 
-          const canvas = document.createElement("canvas");
-          const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = item.name;
 
-          title.className = "title";
-          title.textContent = item.name;
+      card.appendChild(canvas);
+      card.appendChild(title);
+      grid.appendChild(card);
 
-          card.appendChild(canvas);
-          card.appendChild(title);
-          grid.appendChild(card);
+      // 👇 Click works immediately
+      card.onclick = () => openViewer(item.file);
 
-          const viewport = page.getViewport({ scale: 1 });
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
+      // ⚡ Load thumbnail in background (fast UI)
+      renderThumbnail(item.file, canvas);
+    });
+  }
 
-          await page.render({
-            canvasContext: canvas.getContext("2d"),
-            viewport: viewport
-          }).promise;
+  async function renderThumbnail(url, canvas) {
+    try {
+      const loadingTask = pdfjsLib.getDocument({
+        url: url,
+        withCredentials: false
+      });
 
-          // Click = open viewer
-          card.onclick = () => openViewer(item.file);
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
 
-        } catch (err) {
-          console.log("Skipping:", item.name);
-        }
-      }
-    }
-
-    async function openViewer(url) {
-      currentPDF = await pdfjsLib.getDocument(url).promise;
-      currentPage = 1;
-      document.getElementById("viewer").style.display = "flex";
-      renderPage();
-    }
-
-    async function renderPage() {
-      const page = await currentPDF.getPage(currentPage);
-      const canvas = document.getElementById("viewerCanvas");
-      const ctx = canvas.getContext("2d");
-
-      const viewport = page.getViewport({ scale: 1.5 });
+      const viewport = page.getViewport({ scale: 0.5 }); // small = fast
       canvas.height = viewport.height;
       canvas.width = viewport.width;
 
       await page.render({
-        canvasContext: ctx,
+        canvasContext: canvas.getContext("2d"),
         viewport: viewport
       }).promise;
-    }
 
-    function nextPage() {
-      if (currentPDF && currentPage < currentPDF.numPages) {
-        currentPage++;
-        renderPage();
-      }
+    } catch (err) {
+      console.log("Thumbnail failed:", url, err);
     }
+  }
 
-    function prevPage() {
-      if (currentPDF && currentPage > 1) {
-        currentPage--;
-        renderPage();
-      }
+  async function openViewer(url) {
+    try {
+      const loadingTask = pdfjsLib.getDocument({
+        url: url,
+        withCredentials: false
+      });
+
+      currentPDF = await loadingTask.promise;
+      currentPage = 1;
+
+      document.getElementById("viewer").style.display = "flex";
+      renderPage();
+
+    } catch (err) {
+      console.error("Viewer failed:", err);
+      alert("Failed to open PDF. Check CORS or URL.");
     }
+  }
 
-    function closeViewer() {
-      document.getElementById("viewer").style.display = "none";
-      currentPDF = null;
+  async function renderPage() {
+    if (!currentPDF) return;
+
+    const page = await currentPDF.getPage(currentPage);
+    const canvas = document.getElementById("viewerCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const viewport = page.getViewport({ scale: 1.8 }); // sharper view
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    await page.render({
+      canvasContext: ctx,
+      viewport: viewport
+    }).promise;
+  }
+
+  function nextPage() {
+    if (currentPDF && currentPage < currentPDF.numPages) {
+      currentPage++;
+      renderPage();
     }
+  }
 
-    loadLibrary();
-  </script>
+  function prevPage() {
+    if (currentPDF && currentPage > 1) {
+      currentPage--;
+      renderPage();
+    }
+  }
+
+  function closeViewer() {
+    document.getElementById("viewer").style.display = "none";
+    currentPDF = null;
+  }
+
+  loadLibrary();
+</script>
 </body>
 </html>
