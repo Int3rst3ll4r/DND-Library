@@ -5,12 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
+    html {
+      background: radial-gradient(circle at top, #1a1a1a, #0b0b0b);
+    }
+
     body {
       margin: 0;
       font-family: "Georgia", serif;
       background: radial-gradient(circle at top, #1a1a1a, #0b0b0b);
       color: #f5e6c8;
       text-align: center;
+      min-height: 100vh;
     }
 
     h1 {
@@ -119,6 +124,8 @@
       border-radius: 50%;
       opacity: 0.3;
       animation: float 10s linear infinite;
+      z-index: 9999;
+      pointer-events: none;
     }
 
     @keyframes float {
@@ -134,14 +141,14 @@
       }
 
       .grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
         padding: 20px 20px 40px;
         gap: 30px;
+        max-width: 100%;
       }
 
       .card {
-        max-width: 280px;
-        margin: 0 auto;
+        max-width: 100%;
       }
 
       .card img {
