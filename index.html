@@ -1,98 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>D&D Library</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #0f0f0f;
-      color: white;
-      margin: 0;
-      text-align: center;
-    }
-
-    h1 {
-      margin: 20px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, 220px);
-      gap: 20px;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .card {
-      background: #1c1c1c;
-      padding: 10px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .card:hover {
-      transform: scale(1.05);
-      background: #2a2a2a;
-    }
-
-    canvas {
-      width: 100%;
-      border-radius: 6px;
-    }
-
-    .title {
-      margin-top: 10px;
-      font-size: 14px;
-    }
-
-    /* Viewer */
-    #viewer {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: black;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #viewer canvas {
-      max-width: 90%;
-      margin-top: 10px;
-    }
-
-    #controls {
-      margin: 10px;
-    }
-
-    button {
-      padding: 8px 12px;
-      margin: 5px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-
-<body>
-  <h1>D&D Library</h1>
-  <div class="grid" id="grid"></div>
-
-  <!-- Viewer -->
-  <div id="viewer">
-    <div id="controls">
-      <button onclick="prevPage()">⬅ Prev</button>
-      <button onclick="nextPage()">Next ➡</button>
-      <button onclick="closeViewer()">Close ✖</button>
-    </div>
-    <canvas id="viewerCanvas"></canvas>
-  </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 <script>
-  // 🔥 REQUIRED (fixes clicking / rendering issues)
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
 
@@ -104,7 +11,6 @@
     const data = await res.json();
     const grid = document.getElementById("grid");
 
-    // ⚡ Create cards instantly (no waiting)
     data.forEach(item => {
       const card = document.createElement("div");
       card.className = "card";
@@ -119,25 +25,24 @@
       card.appendChild(title);
       grid.appendChild(card);
 
-      // 👇 Click works immediately
       card.onclick = () => openViewer(item.file);
 
-      // ⚡ Load thumbnail in background (fast UI)
+      // ⚡ FAST thumbnail (low quality first)
       renderThumbnail(item.file, canvas);
     });
   }
 
   async function renderThumbnail(url, canvas) {
     try {
-      const loadingTask = pdfjsLib.getDocument({
+      const pdf = await pdfjsLib.getDocument({
         url: url,
-        withCredentials: false
-      });
+        rangeChunkSize: 65536 // streaming chunks
+      }).promise;
 
-      const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
 
-      const viewport = page.getViewport({ scale: 0.5 }); // small = fast
+      // ⚡ super fast preview
+      let viewport = page.getViewport({ scale: 0.3 });
       canvas.height = viewport.height;
       canvas.width = viewport.width;
 
@@ -146,44 +51,64 @@
         viewport: viewport
       }).promise;
 
+      // 🔥 upgrade quality after
+      viewport = page.getViewport({ scale: 0.6 });
+      await page.render({
+        canvasContext: canvas.getContext("2d"),
+        viewport: viewport
+      }).promise;
+
     } catch (err) {
-      console.log("Thumbnail failed:", url, err);
+      console.log("Thumbnail failed:", err);
     }
   }
 
   async function openViewer(url) {
+    document.getElementById("viewer").style.display = "flex";
+
+    // show loading instantly
+    const canvas = document.getElementById("viewerCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "20px Arial";
+    ctx.fillText("Loading...", 20, 40);
+
     try {
       const loadingTask = pdfjsLib.getDocument({
         url: url,
-        withCredentials: false
+        rangeChunkSize: 65536, // ⚡ stream PDF
+        disableAutoFetch: false,
+        disableStream: false
       });
 
       currentPDF = await loadingTask.promise;
       currentPage = 1;
 
-      document.getElementById("viewer").style.display = "flex";
       renderPage();
 
     } catch (err) {
-      console.error("Viewer failed:", err);
-      alert("Failed to open PDF. Check CORS or URL.");
+      console.error(err);
     }
   }
 
   async function renderPage() {
-    if (!currentPDF) return;
-
     const page = await currentPDF.getPage(currentPage);
     const canvas = document.getElementById("viewerCanvas");
     const ctx = canvas.getContext("2d");
 
-    const viewport = page.getViewport({ scale: 1.8 }); // sharper view
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
+    // 📏 FIT TO SCREEN
+    const containerWidth = window.innerWidth * 0.9;
+    const viewport = page.getViewport({ scale: 1 });
+
+    const scale = containerWidth / viewport.width;
+    const scaledViewport = page.getViewport({ scale });
+
+    canvas.height = scaledViewport.height;
+    canvas.width = scaledViewport.width;
 
     await page.render({
       canvasContext: ctx,
-      viewport: viewport
+      viewport: scaledViewport
     }).promise;
   }
 
@@ -208,5 +133,3 @@
 
   loadLibrary();
 </script>
-</body>
-</html>
