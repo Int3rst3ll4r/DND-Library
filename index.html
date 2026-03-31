@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PDF Library</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 200px);
+      gap: 20px;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #222;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    canvas {
+      width: 100%;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>My PDF Library</h1>
+  <div class="grid" id="grid"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script>
+    async function loadLibrary() {
+      const res = await fetch("library.json");
+      const data = await res.json();
+
+      const grid = document.getElementById("grid");
+
+      data.forEach(async (item) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const canvas = document.createElement("canvas");
+        const title = document.createElement("p");
+        title.textContent = item.name;
+
+        card.appendChild(canvas);
+        card.appendChild(title);
+        grid.appendChild(card);
+
+        const pdf = await pdfjsLib.getDocument(item.file).promise;
+        const page = await pdf.getPage(1);
+
+        const viewport = page.getViewport({ scale: 1 });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({
+          canvasContext: canvas.getContext("2d"),
+          viewport: viewport
+        }).promise;
+      });
+    }
+
+    loadLibrary();
+  </script>
+</body>
+</html>
